@@ -1,0 +1,20 @@
+.calendar td {
+  height: 120px;
+  vertical-align: top;
+  position: relative;
+  padding: .25rem;
+}
+.calendar .day-number {
+  font-weight: bold;
+}
+.calendar .btn-add {
+  font-size: .75rem;
+  padding: .1rem .4rem;
+  position: absolute;
+  top: 2px;
+  right: 2px;
+}
+@media (max-width: 576px) {
+  .calendar td { height: auto; font-size: .8rem; }
+  .calendar th { font-size: .7rem; }
+}

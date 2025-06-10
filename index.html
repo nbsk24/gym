@@ -1,405 +1,113 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Фитнес Трекер Pro</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <style>
-        /* ... (предыдущие стили остаются без изменений) ... */
-        
-       
-        
-        .export-import {
-            margin: 20px 0;
-            padding: 15px;
-            background-color: var(--light-color);
-            border-radius: 8px;
-        }
-        
-        
-        
-        .not-confirmed {
-            color: var(--danger-color);
-        }
-        
-        .tab-container {
-            display: flex;
-            margin-bottom: 20px;
-        }
-        
-        .tab {
-            padding: 10px 20px;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-        }
-        
-        .tab.active {
-            border-bottom: 2px solid var(--primary-color);
-            font-weight: bold;
-        }
-        
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        .backup-item {
-    margin: 10px 0;
-    padding: 10px;
-    border: 1px solid var(--border-color);
-    border-radius: 5px;
-    background-color: white;
-}
-
-.backup-item p {
-    margin: 5px 0;
-}
-
-#backup-status {
-    background-color: var(--light-color);
-    padding: 10px;
-    border-radius: 5px;
-    margin-bottom: 15px;
-}
-    </style>
+  <meta charset="UTF-8">
+  <title>Фитнес-трекер SPA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
 </head>
 <body>
-    <!-- Формы аутентификации -->
-    <div id="auth-forms">
-        <div class="auth-container" id="login-form">
-            <h2>Вход</h2>
-            <form class="auth-form" onsubmit="login(event)">
-                <input type="text" id="login-username" placeholder="Имя пользователя" required>
-                <input type="password" id="login-password" placeholder="Пароль" required>
-                <button type="submit">Войти</button>
-            </form>
-            <div class="auth-switch" onclick="showRegisterForm()">Нет аккаунта? Зарегистрируйтесь</div>
-            <div class="auth-switch" onclick="showResetForm()">Забыли пароль?</div>
-        </div>
-        
-        <div class="auth-container" id="register-form" style="display: none;">
-            <h2>Регистрация</h2>
-            <form class="auth-form" onsubmit="register(event)">
-                <input type="text" id="register-username" placeholder="Имя пользователя" required>
-                <input type="password" id="register-password" placeholder="Пароль" required>
-                <input type="password" id="register-confirm" placeholder="Подтвердите пароль" required>
-                <button type="submit">Зарегистрироваться</button>
-            </form>
-            <div class="auth-switch" onclick="showLoginForm()">Уже есть аккаунт? Войдите</div>
-        </div>
-        
-        
-    
-    <!-- Основное приложение -->
-    <div class="container" id="app-container">
-        <div class="user-header">
-            <div class="user-info">
-                Привет, <span id="current-user"></span>!
-                
-            <button class="logout-btn" onclick="logout()">Выйти</button>
-        </div>
-        
-        <div class="tab-container">
-            <div class="tab active" onclick="switchTab('tracker')">Трекер</div>
-            <div class="tab" onclick="switchTab('stats')">Статистика</div>
-<div class="tab" onclick="switchTab('settings')">Настройки</div>
-        </div>
-        
-        <div class="tab-content active" id="tracker-tab">
-            <!-- ... (ваш существующий код трекера) ... -->
-        </div>
-        
-        <div class="tab-content" id="stats-tab">
-            <!-- Графики прогресса -->
-            <div class="chart-container">
-                <h3 class="chart-title">Прогресс по месяцам (текущий год)</h3>
-                <canvas id="monthly-chart"></canvas>
-            </div>
-            
-            <div class="chart-container">
-                <h3 class="chart-title">Прогресс по годам</h3>
-                <canvas id="yearly-chart"></canvas>
-            </div>
-        </div>
-        
-        <div class="tab-content" id="settings-tab">
-           <div class="export-import">
-    <h3>Автоматические резервные копии</h3>
-    <div id="backup-status"></div>
-    <button onclick="createBackup()">Создать резервную копию сейчас</button>
-    <div id="backup-list" style="margin-top: 15px;"></div>
-</div>
-            
-            <div class="export-import">
-                <h3>Смена пароля</h3>
-                <input type="password" id="current-password" placeholder="Текущий пароль">
-                <input type="password" id="new-password" placeholder="Новый пароль">
-                <button onclick="changePassword()">Сменить пароль</button>
-            </div>
-            
-            
-        </div>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="#">Фитнес-трекер</a>
+    <div class="collapse navbar-collapse">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a id="nav-calendar" class="nav-link active" href="#">Календарь</a></li>
+        <li class="nav-item"><a id="nav-stats" class="nav-link" href="#">Статистика</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-3">
+  <!-- Календарь -->
+  <div id="view-calendar">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <button id="prevMonth" class="btn btn-outline-primary">&laquo; Прошлый</button>
+      <h2 id="monthTitle" class="mb-0"></h2>
+      <button id="nextMonth" class="btn btn-outline-primary">Следующий &raquo;</button>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-bordered calendar mb-3">
+        <thead class="table-light">
+          <tr>
+            <th>Вс</th><th>Пн</th><th>Вт</th><th>Ср</th>
+            <th>Чт</th><th>Пт</th><th>Сб</th>
+          </tr>
+        </thead>
+        <tbody id="calendarBody"></tbody>
+      </table>
     </div>
 
-    <script>
-        // Хеширование паролей с солью
-        function hashPassword(password, salt) {
-            return CryptoJS.PBKDF2(password, salt, {
-                keySize: 256/32,
-                iterations: 1000
-            }).toString();
-        }
-        
-        // Генерация соли
-        function generateSalt() {
-            return CryptoJS.lib.WordArray.random(128/8).toString();
-        }
-        
-        // Система аутентификации с email подтверждением
-        let currentUser = null;
-        let users = JSON.parse(localStorage.getItem('workoutUsers')) || {};
-        let confirmationTokens = JSON.parse(localStorage.getItem('confirmationTokens')) || {};
-        
-        // Функция отправки email (эмуляция)
-        function sendEmail(to, subject, body) {
-            console.log(`Email to: ${to}\nSubject: ${subject}\nBody: ${body}`);
-            // В реальном приложении здесь будет вызов API отправки email
-        }
-        
-        
-        
-       
-                
-                // Удаляем токен из URL
-                window.history.replaceState({}, document.title, window.location.pathname);
-            }
-        }
-        
-       
-        // Генерация токена
-        function generateToken() {
-            return CryptoJS.lib.WordArray.random(32).toString();
-        }
-        
-        // Экспорт данных
-        function exportData() {
-            if (!currentUser) return;
-            
-            const data = {
-                workouts: workoutData,
-                userInfo: users[currentUser]
-            };
-            
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `workout-data-${currentUser}-${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-        
-        // Импорт данных
-        document.getElementById('import-file').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                try {
-                    const data = JSON.parse(event.target.result);
-                    
-                    if (confirm('Заменить текущие данные импортируемыми? Все существующие данные будут потеряны!')) {
-                        workoutData = data.workouts || {};
-                        saveUserData();
-                        alert('Данные успешно импортированы!');
-                        location.reload();
-                    }
-                } catch (error) {
-                    alert('Ошибка при чтении файла: ' + error.message);
-                }
-            };
-            reader.readAsText(file);
-        });
-        
-       
-        // Переключение вкладок
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`).classList.add('active');
-            document.getElementById(`${tabName}-tab`).classList.add('active');
-        }
-        
-        
-        / ======================
-// СИСТЕМА РЕЗЕРВНОГО КОПИРОВАНИЯ
-// ======================
+    <div class="row mb-4">
+      <div class="col-md-6">
+        <h5>Новая группа мышц</h5>
+        <form id="groupForm" class="d-flex">
+          <input name="groupName" class="form-control me-2" placeholder="Название" required>
+          <button class="btn btn-primary">Добавить</button>
+        </form>
+      </div>
+      <div class="col-md-6">
+        <h5>Новое упражнение</h5>
+        <form id="exerciseForm" class="d-flex">
+          <select name="groupId" id="exGroupSelect" class="form-control me-2" required></select>
+          <input name="exerciseName" class="form-control me-2" placeholder="Название" required>
+          <button class="btn btn-primary">Добавить</button>
+        </form>
+      </div>
+    </div>
+  </div>
 
-const BACKUP_INTERVAL = 24 * 60 * 60 * 1000; // 24 часа
-let lastBackupTime = localStorage.getItem('lastBackupTime_' + currentUser) || 0;
+  <!-- Статистика -->
+  <div id="view-stats" class="d-none">
+    <h3 class="text-center mb-4">Объём тренировок (кг×сеты) за год <span id="statsYear"></span></h3>
+    <canvas id="chartMonth" height="100"></canvas>
+    <hr class="my-4">
+    <h4 class="mb-3">Годовая динамика (последние 5 лет)</h4>
+    <canvas id="chartYear" height="100"></canvas>
+  </div>
+</div>
 
-// Функция создания резервной копии
-function createBackup() {
-    if (!currentUser) {
-        alert('Войдите в систему для создания резервных копий');
-        return;
-    }
+<!-- Модалка добавления тренировки -->
+<div class="modal fade" id="addModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form id="workoutForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Добавить тренировку</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="modalDate" name="date">
+        <div class="mb-3">
+          <label class="form-label">Группа мышц</label>
+          <select id="modalGroup" name="groupId" class="form-select" required></select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Упражнение</label>
+          <select id="modalExercise" name="exerciseId" class="form-select" required></select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Вес (кг)</label>
+          <input type="number" name="weight" class="form-control" required min="0">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Подходы</label>
+<input type="number" name="sets" class="form-control" required min="1">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary">Сохранить</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+      </div>
+    </form>
+  </div>
+</div>
 
-    const now = Date.now();
-    const backupData = {
-        workouts: workoutData,
-        userInfo: users[currentUser],
-        timestamp: now,
-        version: '1.0'
-    };
-
-    const backups = JSON.parse(localStorage.getItem('userBackups')) || {};
-    backups[currentUser] = backups[currentUser] || [];
-
-    // Сохраняем только 3 последние копии
-    if (backups[currentUser].length >= 3) {
-        backups[currentUser].shift();
-    }
-
-    backups[currentUser].push(backupData);
-    localStorage.setItem('userBackups', JSON.stringify(backups));
-    localStorage.setItem('lastBackupTime_' + currentUser, now);
-
-    updateBackupStatus();
-    showBackupList();
-    alert(`Резервная копия создана (${new Date(now).toLocaleString()})`);
-}
-
-// Показать список резервных копий
-function showBackupList() {
-    const backups = JSON.parse(localStorage.getItem('userBackups')) || {};
-    const userBackups = backups[currentUser] || [];
-    const listEl = document.getElementById('backup-list');
-
-    listEl.innerHTML = '<h4>Доступные резервные копии:</h4>';
-
-    if (userBackups.length === 0) {
-        listEl.innerHTML += '<p>Нет доступных резервных копий</p>';
-        return;
-    }
-
-    userBackups.forEach((backup, index) => {
-        const date = new Date(backup.timestamp);
-        listEl.innerHTML += `
-            <div style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
-                <p><strong>${date.toLocaleString()}</strong></p>
-                <button onclick="restoreBackup(${index})" style="margin-right: 10px;">Восстановить</button>
-                <button onclick="exportSingleBackup(${index})">Экспорт</button>
-            </div>
-        `;
-    });
-}
-
-// Восстановление из резервной копии
-function restoreBackup(index) {
-    if (!confirm('Восстановить эту резервную копию? Текущие данные будут заменены.')) return;
-
-    const backups = JSON.parse(localStorage.getItem('userBackups')) || {};
-    const backup = backups[currentUser][index];
-
-    if (backup) {
-        workoutData = backup.workouts || {};
-        saveUserData();
-        alert('Данные восстановлены!');
-        location.reload();
-    } else {
-        alert('Ошибка: резервная копия не найдена');
-    }
-}
-
-// Экспорт одной резервной копии
-function exportSingleBackup(index) {
-    const backups = JSON.parse(localStorage.getItem('userBackups')) || {};
-    const backup = backups[currentUser][index];
-
-    if (backup) {
-        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `backup-${currentUser}-${new Date(backup.timestamp).toISOString().split('T')[0]}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-    }
-}
-
-// Проверка и создание резервных копий
-function checkAutoBackup() {
-    const now = Date.now();
-    if (now - lastBackupTime >= BACKUP_INTERVAL) {
-        createBackup();
-    }
-}
-
-// Обновление статуса резервного копирования
-function updateBackupStatus() {
-const statusEl = document.getElementById('backup-status');
-    if (!currentUser) {
-        statusEl.innerHTML = '<p>Войдите в систему для работы с резервными копиями</p>';
-        return;
-    }
-
-    const lastBackup = new Date(parseInt(localStorage.getItem('lastBackupTime_' + currentUser) || 0);
-    const nextBackup = new Date(lastBackup.getTime() + BACKUP_INTERVAL);
-
-    statusEl.innerHTML = `
-        <p>Последняя резервная копия: ${lastBackup.getTime() > 0 ? lastBackup.toLocaleString() : 'еще не создана'}</p>
-        <p>Следующая автоматическая резервная копия: ${nextBackup.toLocaleString()}</p>
-    `;
-}
-
-// Инициализация системы резервного копирования
-function initBackupSystem() {
-    updateBackupStatus();
-    showBackupList();
-    
-    // Проверяем каждые 6 часов
-    setInterval(checkAutoBackup, 6 * 60 * 60 * 1000);
-}
-
-// Добавьте в функцию login() после успешного входа:
-initBackupSystem();
-
-// Добавьте в функцию switchTab('settings'):
-updateBackupStatus();
-showBackupList();
-        function saveUserData() {
-    if (!currentUser) {
-        console.error("Пользователь не авторизован, сохранение невозможно");
-        return;
-    }
-    
-    try {
-        // Сохраняем основные данные тренировок
-       saveUserData();
-        
-        // Проверяем необходимость создания резервной копии
-        const now = Date.now();
-        const lastBackup = parseInt(localStorage.getItem(`lastBackupTime_${currentUser}`)) || 0;
-        const backupInterval = 24 * 60 * 60 * 1000; // 24 часа
-        
-        if (now - lastBackup >= backupInterval) {
-            createBackup(); // Вызываем функцию создания резервной копии
-        }
-        
-        console.log("Данные успешно сохранены");
-    } catch (error) {
-        console.error("Ошибка при сохранении данных:", error);
-        alert("Произошла ошибка при сохранении данных. Попробуйте снова.");
-    }
-}
-
-    </script>
+<!-- Скрипты -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="js/main.js"></script>
 </body>
 </html>

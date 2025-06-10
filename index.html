@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Умный трекер тренировок</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        .muscle-group {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+        .exercise {
+            margin: 15px 0;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            background-color: white;
+        }
+        button {
+            padding: 8px 15px;
+            margin: 5px;
+            cursor: pointer;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        input, select {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .stats {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        .stat {
+            background-color: #ecf0f1;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+        .history {
+            margin-top: 30px;
+        }
+        .day-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .day-btn {
+            padding: 5px 10px;
+        }
+        .active-day {
+            background-color: #2ecc71;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Умный трекер тренировок</h1>
+        
+        <div class="day-selector">
+            <button class="day-btn" onclick="setDay('Понедельник')">Пн</button>
+            <button class="day-btn" onclick="setDay('Вторник')">Вт</button>
+            <button class="day-btn" onclick="setDay('Среда')">Ср</button>
+            <button class="day-btn" onclick="setDay('Четверг')">Чт</button>
+            <button class="day-btn" onclick="setDay('Пятница')">Пт</button>
+            <button class="day-btn" onclick="setDay('Суббота')">Сб</button>
+            <button class="day-btn" onclick="setDay('Воскресенье')">Вс</button>
+        </div>
+        
+        <div id="muscle-groups"></div>
+        
+        <div>
+            <h3>Добавить группу мышц</h3>
+            <input type="text" id="new-muscle-group" placeholder="Название группы">
+            <button onclick="addMuscleGroup()">Добавить</button>
+        </div>
+        
+        <div class="history">
+            <h2>История тренировок</h2>
+            <select id="history-date">
+                <option value="">Выберите дату</option>
+            </select>
+            <div id="history-content"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentDay = 'Понедельник';
+        let workoutData = {};
+        
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            renderMuscleGroups();
+            updateDayButtons();
+            loadHistoryDates();
+        });
+        
+        function setDay(day) {
+            currentDay = day;
+            updateDayButtons();
+            renderMuscleGroups();
+        }
+        
+        function updateDayButtons() {
+            document.querySelectorAll('.day-btn').forEach(btn => {
+                btn.classList.remove('active-day');
+if (btn.textContent === currentDay.substring(0, 2)) {
+                    btn.classList.add('active-day');
+                }
+            });
+        }
+        
+        function loadData() {
+            const savedData = localStorage.getItem('workoutTrackerData');
+            if (savedData) {
+                workoutData = JSON.parse(savedData);
+            } else {
+                // Пример начальных данных
+                workoutData = {
+                    "Понедельник": {
+                        "Грудь": [
+                            {
+                                "name": "Жим штанги лёжа",
+                                "weight": 60,
+                                "sets": 3,
+                                "reps": 10
+                            }
+                        ]
+                    },
+                    "Среда": {
+                        "Спина": [
+                            {
+                                "name": "Тяга штанги в наклоне",
+                                "weight": 50,
+                                "sets": 3,
+                                "reps": 12
+                            }
+                        ]
+                    },
+                    "Пятница": {
+                        "Ноги": [
+                            {
+                                "name": "Приседания со штангой",
+                                "weight": 70,
+                                "sets": 4,
+                                "reps": 8
+                            }
+                        ]
+                    }
+                };
+                saveData();
+            }
+        }
+        
+        function saveData() {
+            localStorage.setItem('workoutTrackerData', JSON.stringify(workoutData));
+        }
+        
+        function addMuscleGroup() {
+            const groupName = document.getElementById('new-muscle-group').value.trim();
+            if (!groupName) return;
+            
+            if (!workoutData[currentDay]) {
+                workoutData[currentDay] = {};
+            }
+            
+            if (!workoutData[currentDay][groupName]) {
+                workoutData[currentDay][groupName] = [];
+                saveData();
+                renderMuscleGroups();
+                document.getElementById('new-muscle-group').value = '';
+            } else {
+                alert('Эта группа мышц уже добавлена!');
+            }
+        }
+        
+        function renderMuscleGroups() {
+            const container = document.getElementById('muscle-groups');
+            container.innerHTML = '';
+            
+            if (!workoutData[currentDay] || Object.keys(workoutData[currentDay]).length === 0) {
+                container.innerHTML = '<p>Нет тренировок на этот день. Добавьте группу мышц.</p>';
+                return;
+            }
+            
+            for (const [groupName, exercises] of Object.entries(workoutData[currentDay])) {
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'muscle-group';
+                groupDiv.innerHTML = `<h2>${groupName}</h2>`;
+                
+                exercises.forEach((exercise, index) => {
+                    const exerciseDiv = document.createElement('div');
+                    exerciseDiv.className = 'exercise';
+                    exerciseDiv.innerHTML = `
+                        <h3>${exercise.name}</h3>
+                        <div class="stats">
+                            <div class="stat">Вес: ${exercise.weight} кг</div>
+                            <div class="stat">Подходы: ${exercise.sets}</div>
+                            <div class="stat">Повторения: ${exercise.reps}</div>
+                        </div>
+                        <button onclick="editExercise('${groupName}', ${index})">Изменить</button>
+                        <button onclick="removeExercise('${groupName}', ${index})">Удалить</button>
+                    `;
+                    groupDiv.appendChild(exerciseDiv);
+                });
+                
+                groupDiv.innerHTML += `
+<button onclick="showAddExerciseForm('${groupName}')">+ Добавить упражнение</button>
+                    <button onclick="removeMuscleGroup('${groupName}')" style="background-color: #e74c3c">Удалить группу</button>
+                    <div id="form-${groupName}" style="margin-top: 10px; display: none">
+                        <input type="text" id="new-exercise-${groupName}" placeholder="Название упражнения">
+                        <input type="number" id="weight-${groupName}" placeholder="Вес (кг)" min="0" step="0.5">
+                        <input type="number" id="sets-${groupName}" placeholder="Подходы" min="1">
+                        <input type="number" id="reps-${groupName}" placeholder="Повторения" min="1">
+                        <button onclick="addExercise('${groupName}')">Сохранить</button>
+                    </div>
+                `;
+                
+                container.appendChild(groupDiv);
+            }
+        }
+        
+        function showAddExerciseForm(groupName) {
+            const form = document.getElementById(`form-${groupName}`);
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        function addExercise(groupName) {
+            const name = document.getElementById(`new-exercise-${groupName}`).value.trim();
+            const weight = parseFloat(document.getElementById(`weight-${groupName}`).value);
+            const sets = parseInt(document.getElementById(`sets-${groupName}`).value);
+            const reps = parseInt(document.getElementById(`reps-${groupName}`).value);
+            
+            if (!name || isNaN(weight) || isNaN(sets) || isNaN(reps)) {
+                alert('Заполните все поля корректно!');
+                return;
+            }
+            
+            workoutData[currentDay][groupName].push({
+                name,
+                weight,
+                sets,
+                reps
+            });
+            
+            saveData();
+            renderMuscleGroups();
+        }
+        
+        function editExercise(groupName, index) {
+            const exercise = workoutData[currentDay][groupName][index];
+            const newName = prompt('Название упражнения:', exercise.name);
+            if (newName === null) return;
+            
+            const newWeight = parseFloat(prompt('Вес (кг):', exercise.weight));
+            if (isNaN(newWeight)) return;
+            
+            const newSets = parseInt(prompt('Подходы:', exercise.sets));
+            if (isNaN(newSets)) return;
+            
+            const newReps = parseInt(prompt('Повторения:', exercise.reps));
+            if (isNaN(newReps)) return;
+            
+            workoutData[currentDay][groupName][index] = {
+                name: newName.trim(),
+                weight: newWeight,
+                sets: newSets,
+                reps: newReps
+            };
+            
+            saveData();
+            renderMuscleGroups();
+        }
+        
+        function removeExercise(groupName, index) {
+            if (confirm('Удалить это упражнение?')) {
+                workoutData[currentDay][groupName].splice(index, 1);
+                if (workoutData[currentDay][groupName].length === 0) {
+                    delete workoutData[currentDay][groupName];
+                }
+                saveData();
+                renderMuscleGroups();
+            }
+        }
+        
+        function removeMuscleGroup(groupName) {
+            if (confirm(`Удалить группу "${groupName}" и все её упражнения?`)) {
+                delete workoutData[currentDay][groupName];
+                if (Object.keys(workoutData[currentDay]).length === 0) {
+                    delete workoutData[currentDay];
+                }
+                saveData();
+                renderMuscleGroups();
+            }
+        }
+        
+        function loadHistoryDates() {
+            const select = document.getElementById('history-date');
+            select.innerHTML = '<option value="">Выберите дату</option>';
+            
+            const dates = [];
+for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('workoutHistory_')) {
+                    dates.push(key.replace('workoutHistory_', ''));
+                }
+            }
+            
+            dates.sort().reverse().forEach(date => {
+                const option = document.createElement('option');
+                option.value = date;
+                option.textContent = date;
+                select.appendChild(option);
+            });
+            
+            select.addEventListener('change', function() {
+                if (this.value) {
+                    loadHistory(this.value);
+                } else {
+                    document.getElementById('history-content').innerHTML = '';
+                }
+            });
+        }
+        
+        function loadHistory(date) {
+            const history = JSON.parse(localStorage.getItem(`workoutHistory_${date}`));
+            const content = document.getElementById('history-content');
+            content.innerHTML = '';
+            
+            if (!history) {
+                content.innerHTML = '<p>Нет данных за эту дату</p>';
+                return;
+            }
+            
+            for (const [day, groups] of Object.entries(history)) {
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'muscle-group';
+                dayDiv.innerHTML = `<h2>${day}</h2>`;
+                
+                for (const [groupName, exercises] of Object.entries(groups)) {
+                    const groupDiv = document.createElement('div');
+                    groupDiv.innerHTML = `<h3>${groupName}</h3>`;
+                    
+                    exercises.forEach(exercise => {
+                        const exerciseDiv = document.createElement('div');
+                        exerciseDiv.className = 'exercise';
+                        exerciseDiv.innerHTML = `
+                            <h4>${exercise.name}</h4>
+                            <div class="stats">
+                                <div class="stat">Вес: ${exercise.weight} кг</div>
+                                <div class="stat">Подходы: ${exercise.sets}</div>
+                                <div class="stat">Повторения: ${exercise.reps}</div>
+                            </div>
+                        `;
+                        groupDiv.appendChild(exerciseDiv);
+                    });
+                    
+                    dayDiv.appendChild(groupDiv);
+                }
+                
+                content.appendChild(dayDiv);
+            }
+        }
+        
+        // Сохраняем историю при закрытии вкладки
+        window.addEventListener('beforeunload', function() {
+            const today = new Date().toLocaleDateString();
+            localStorage.setItem(`workoutHistory_${today}`, JSON.stringify(workoutData));
+        });
+    </script>
+</body>
+</html>

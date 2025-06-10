@@ -3,190 +3,356 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Трекер тренировок с календарём</title>
+    <title>Фитнес Трекер Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
+        /* ... (предыдущие стили остаются без изменений) ... */
+        
+        .password-reset-form {
+            display: none;
         }
-        .container {
-            background-color: white;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        
+        .export-import {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: var(--light-color);
+            border-radius: 8px;
         }
-        .calendar {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 5px;
+        
+        .email-confirmation {
+            color: var(--secondary-color);
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+        
+        .not-confirmed {
+            color: var(--danger-color);
+        }
+        
+        .tab-container {
+            display: flex;
             margin-bottom: 20px;
         }
-        .calendar-header {
-            grid-column: span 7;
-            text-align: center;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        .day-header {
-            text-align: center;
-            font-weight: bold;
-            padding: 5px;
-        }
-        .day {
-            padding: 10px;
-            text-align: center;
-            border: 1px solid #ddd;
+        
+        .tab {
+            padding: 10px 20px;
             cursor: pointer;
+            border-bottom: 2px solid transparent;
         }
-        .day:hover {
-            background-color: #f0f0f0;
+        
+        .tab.active {
+            border-bottom: 2px solid var(--primary-color);
+            font-weight: bold;
         }
-        .current-day {
-            background-color: #3498db;
-            color: white;
+        
+        .tab-content {
+            display: none;
         }
-        .has-workout {
-            background-color: #2ecc71;
-            color: white;
+        
+        .tab-content.active {
+            display: block;
         }
-        .selected-day {
-            border: 2px solid #e74c3c;
-        }
-        /* Остальные стили из предыдущего кода остаются без изменений */
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Трекер тренировок с календарём</h1>
-        
-        <div id="calendar"></div>
-        
-        <div class="day-selector">
-            <button class="day-btn" onclick="setDay('Понедельник')">Пн</button>
-            <button class="day-btn" onclick="setDay('Вторник')">Вт</button>
-            <button class="day-btn" onclick="setDay('Среда')">Ср</button>
-            <button class="day-btn" onclick="setDay('Четверг')">Чт</button>
-            <button class="day-btn" onclick="setDay('Пятница')">Пт</button>
-            <button class="day-btn" onclick="setDay('Суббота')">Сб</button>
-            <button class="day-btn" onclick="setDay('Воскресенье')">Вс</button>
+    <!-- Формы аутентификации -->
+    <div id="auth-forms">
+        <div class="auth-container" id="login-form">
+            <h2>Вход</h2>
+            <form class="auth-form" onsubmit="login(event)">
+                <input type="text" id="login-username" placeholder="Имя пользователя" required>
+                <input type="password" id="login-password" placeholder="Пароль" required>
+                <button type="submit">Войти</button>
+            </form>
+            <div class="auth-switch" onclick="showRegisterForm()">Нет аккаунта? Зарегистрируйтесь</div>
+            <div class="auth-switch" onclick="showResetForm()">Забыли пароль?</div>
         </div>
         
-        <div id="muscle-groups"></div>
+        <div class="auth-container" id="register-form" style="display: none;">
+            <h2>Регистрация</h2>
+            <form class="auth-form" onsubmit="register(event)">
+                <input type="text" id="register-username" placeholder="Имя пользователя" required>
+                <input type="email" id="register-email" placeholder="Email" required>
+                <input type="password" id="register-password" placeholder="Пароль" required>
+                <input type="password" id="register-confirm" placeholder="Подтвердите пароль" required>
+                <button type="submit">Зарегистрироваться</button>
+            </form>
+            <div class="auth-switch" onclick="showLoginForm()">Уже есть аккаунт? Войдите</div>
+        </div>
         
-        <div>
-            <h3>Добавить группу мышц</h3>
-            <input type="text" id="new-muscle-group" placeholder="Название группы">
-            <button onclick="addMuscleGroup()">Добавить</button>
+        <div class="auth-container password-reset-form" id="reset-form">
+            <h2>Восстановление пароля</h2>
+            <form class="auth-form" onsubmit="sendResetLink(event)">
+                <input type="email" id="reset-email" placeholder="Ваш email" required>
+                <button type="submit">Отправить ссылку</button>
+            </form>
+            <div class="auth-switch" onclick="showLoginForm()">Вернуться к входу</div>
+        </div>
+    </div>
+    
+    <!-- Основное приложение -->
+    <div class="container" id="app-container">
+        <div class="user-header">
+            <div class="user-info">
+                Привет, <span id="current-user"></span>!
+                <div class="email-confirmation" id="email-confirmation-status"></div>
+            </div>
+            <button class="logout-btn" onclick="logout()">Выйти</button>
+        </div>
+        
+        <div class="tab-container">
+            <div class="tab active" onclick="switchTab('tracker')">Трекер</div>
+            <div class="tab" onclick="switchTab('stats')">Статистика</div>
+<div class="tab" onclick="switchTab('settings')">Настройки</div>
+        </div>
+        
+        <div class="tab-content active" id="tracker-tab">
+            <!-- ... (ваш существующий код трекера) ... -->
+        </div>
+        
+        <div class="tab-content" id="stats-tab">
+            <!-- Графики прогресса -->
+            <div class="chart-container">
+                <h3 class="chart-title">Прогресс по месяцам (текущий год)</h3>
+                <canvas id="monthly-chart"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <h3 class="chart-title">Прогресс по годам</h3>
+                <canvas id="yearly-chart"></canvas>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="settings-tab">
+            <div class="export-import">
+                <h3>Экспорт/Импорт данных</h3>
+                <button onclick="exportData()">Экспорт всех данных</button>
+                <input type="file" id="import-file" accept=".json" style="display: none;">
+                <button onclick="document.getElementById('import-file').click()">Импорт данных</button>
+                <p>Экспортированные данные содержат все ваши тренировки в JSON формате</p>
+            </div>
+            
+            <div class="export-import">
+                <h3>Смена пароля</h3>
+                <input type="password" id="current-password" placeholder="Текущий пароль">
+                <input type="password" id="new-password" placeholder="Новый пароль">
+                <button onclick="changePassword()">Сменить пароль</button>
+            </div>
+            
+            <div class="export-import">
+                <h3>Подтверждение email</h3>
+                <p id="current-email"></p>
+                <button onclick="sendConfirmationEmail()">Отправить подтверждение</button>
+                <div id="confirmation-result"></div>
+            </div>
         </div>
     </div>
 
     <script>
-        // ... (предыдущий код остаётся без изменений до функции loadData)
+        // Хеширование паролей с солью
+        function hashPassword(password, salt) {
+            return CryptoJS.PBKDF2(password, salt, {
+                keySize: 256/32,
+                iterations: 1000
+            }).toString();
+        }
         
-        function generateCalendar() {
-            const now = new Date();
-            const currentMonth = now.getMonth();
-            const currentYear = now.getFullYear();
+        // Генерация соли
+        function generateSalt() {
+            return CryptoJS.lib.WordArray.random(128/8).toString();
+        }
+        
+        // Система аутентификации с email подтверждением
+        let currentUser = null;
+        let users = JSON.parse(localStorage.getItem('workoutUsers')) || {};
+        let confirmationTokens = JSON.parse(localStorage.getItem('confirmationTokens')) || {};
+        
+        // Функция отправки email (эмуляция)
+        function sendEmail(to, subject, body) {
+            console.log(`Email to: ${to}\nSubject: ${subject}\nBody: ${body}`);
+            // В реальном приложении здесь будет вызов API отправки email
+        }
+        
+        // Восстановление пароля
+        function sendResetLink(e) {
+            e.preventDefault();
+            const email = document.getElementById('reset-email').value;
+            let userFound = null;
             
-            const firstDay = new Date(currentYear, currentMonth, 1);
-            const lastDay = new Date(currentYear, currentMonth + 1, 0);
-            
-            const calendarEl = document.getElementById('calendar');
-            calendarEl.innerHTML = '';
-            
-            // Заголовок календаря
-            const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
-                              "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
-            const header = document.createElement('div');
-            header.className = 'calendar-header';
-            header.textContent = `${monthNames[currentMonth]} ${currentYear}`;
-            calendarEl.appendChild(header);
-            
-            // Дни недели
-            const dayNames = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
-            dayNames.forEach(day => {
-                const dayHeader = document.createElement('div');
-                dayHeader.className = 'day-header';
-                dayHeader.textContent = day;
-calendarEl.appendChild(dayHeader);
-            });
-            
-            // Пустые ячейки для дней предыдущего месяца
-            for (let i = 0; i < firstDay.getDay() - 1; i++) {
-                const emptyDay = document.createElement('div');
-                emptyDay.className = 'day';
-                calendarEl.appendChild(emptyDay);
+            for (const username in users) {
+                if (users[username].email === email) {
+                    userFound = username;
+                    break;
+                }
             }
             
-            // Дни текущего месяца
-            for (let day = 1; day <= lastDay.getDate(); day++) {
-                const date = new Date(currentYear, currentMonth, day);
-                const dateStr = formatDate(date);
+            if (!userFound) {
+                alert('Пользователь с таким email не найден!');
+                return;
+            }
+            
+            const token = generateToken();
+            confirmationTokens[token] = {
+                username: userFound,
+                type: 'password_reset',
+                expires: Date.now() + 3600000 // 1 час
+            };
+            
+            localStorage.setItem('confirmationTokens', JSON.stringify(confirmationTokens));
+            
+            const resetLink = `${window.location.origin}${window.location.pathname}?token=${token}`;
+            sendEmail(
+                email,
+                'Восстановление пароля',
+                `Для сброса пароля перейдите по ссылке: ${resetLink}`
+);
+            
+            alert('Ссылка для сброса пароля отправлена на ваш email!');
+            showLoginForm();
+        }
+        
+        // Обработка токена при загрузке страницы
+        function processToken() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            
+            if (token && confirmationTokens[token]) {
+                const tokenData = confirmationTokens[token];
                 
-                const dayEl = document.createElement('div');
-                dayEl.className = 'day';
-                dayEl.textContent = day;
-                
-                if (day === now.getDate() && currentMonth === now.getMonth()) {
-                    dayEl.classList.add('current-day');
+                if (tokenData.expires < Date.now()) {
+                    alert('Ссылка устарела!');
+                    return;
                 }
                 
-                // Проверяем, есть ли тренировки на эту дату
-                if (workoutData[dateStr]) {
-                    dayEl.classList.add('has-workout');
+                if (tokenData.type === 'password_reset') {
+                    const newPassword = prompt('Введите новый пароль:');
+                    if (newPassword) {
+                        const salt = generateSalt();
+                        users[tokenData.username].passwordHash = hashPassword(newPassword, salt);
+                        users[tokenData.username].salt = salt;
+                        localStorage.setItem('workoutUsers', JSON.stringify(users));
+                        delete confirmationTokens[token];
+                        localStorage.setItem('confirmationTokens', JSON.stringify(confirmationTokens));
+                        alert('Пароль успешно изменён!');
+                    }
+                } else if (tokenData.type === 'email_confirmation') {
+                    users[tokenData.username].emailConfirmed = true;
+                    localStorage.setItem('workoutUsers', JSON.stringify(users));
+                    delete confirmationTokens[token];
+                    localStorage.setItem('confirmationTokens', JSON.stringify(confirmationTokens));
+                    alert('Email успешно подтверждён!');
+                    if (currentUser === tokenData.username) {
+                        updateEmailConfirmationStatus();
+                    }
                 }
                 
-                dayEl.addEventListener('click', () => {
-                    document.querySelectorAll('.day').forEach(d => d.classList.remove('selected-day'));
-                    dayEl.classList.add('selected-day');
-                    loadWorkoutForDate(dateStr);
-                });
-                
-                calendarEl.appendChild(dayEl);
+                // Удаляем токен из URL
+                window.history.replaceState({}, document.title, window.location.pathname);
             }
         }
         
-        function formatDate(date) {
-            const day = date.getDate().toString().padStart(2, '0');
-            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const year = date.getFullYear();
-            return `${day}.${month}.${year}`;
-        }
-        
-        function loadWorkoutForDate(dateStr) {
-            if (!workoutData[dateStr]) {
-                workoutData[dateStr] = {};
-            }
-            currentDate = dateStr;
-            renderMuscleGroups();
-        }
-        
-        // В начале кода добавь:
-        let currentDate = formatDate(new Date());
-        
-        // В функции setDay измени сохранение данных:
-        function setDay(day) {
-            currentDay = day;
-            updateDayButtons();
+        // Подтверждение email
+        function sendConfirmationEmail() {
+            if (!currentUser || !users[currentUser].email) return;
             
-            if (!workoutData[currentDate]) {
-                workoutData[currentDate] = {};
-            }
+            const token = generateToken();
+            confirmationTokens[token] = {
+                username: currentUser,
+                type: 'email_confirmation',
+                expires: Date.now() + 86400000 // 24 часа
+            };
             
-            if (!workoutData[currentDate][currentDay]) {
-                workoutData[currentDate][currentDay] = {};
-            }
+            localStorage.setItem('confirmationTokens', JSON.stringify(confirmationTokens));
             
-            renderMuscleGroups();
+            const confirmLink = `${window.location.origin}${window.location.pathname}?token=${token}`;
+            sendEmail(
+                users[currentUser].email,
+                'Подтверждение email',
+                `Для подтверждения email перейдите по ссылке: ${confirmLink}`
+            );
+            
+            document.getElementById('confirmation-result').textContent = 'Письмо с подтверждением отправлено!';
         }
         
-        // В остальных функциях замени workoutData[currentDay] на workoutData[currentDate][currentDay]
+        // Генерация токена
+        function generateToken() {
+            return CryptoJS.lib.WordArray.random(32).toString();
+        }
         
-        // В самом конце инициализации добавь:
-        generateCalendar();
+        // Экспорт данных
+        function exportData() {
+            if (!currentUser) return;
+            
+            const data = {
+                workouts: workoutData,
+                userInfo: users[currentUser]
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `workout-data-${currentUser}-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // Импорт данных
+        document.getElementById('import-file').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    
+                    if (confirm('Заменить текущие данные импортируемыми? Все существующие данные будут потеряны!')) {
+                        workoutData = data.workouts || {};
+                        saveUserData();
+                        alert('Данные успешно импортированы!');
+                        location.reload();
+                    }
+                } catch (error) {
+                    alert('Ошибка при чтении файла: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        });
+        
+        // Обновление статуса подтверждения email
+        function updateEmailConfirmationStatus() {
+            if (!currentUser || !users[currentUser].email) return;
+            
+            const statusEl = document.getElementById('email-confirmation-status');
+            statusEl.textContent = users[currentUser].email 
+                ? `Email: ${users[currentUser].email} (${users[currentUser].emailConfirmed ? 'подтверждён' : 'не подтверждён'})`
+                : 'Email не указан';
+            
+            if (users[currentUser].email && !users[currentUser].emailConfirmed) {
+                statusEl.classList.add('not-confirmed');
+            } else {
+                statusEl.classList.remove('not-confirmed');
+            }
+            
+            document.getElementById('current-email').textContent = users[currentUser].email || 'Email не указан';
+        }
+        
+        // Переключение вкладок
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+        
+        // При загрузке страницы
+        window.addEventListener('DOMContentLoaded', function() {
+            processToken();
+            showLoginForm();
+        });
     </script>
 </body>
 </html>

@@ -53,6 +53,24 @@
         .tab-content.active {
             display: block;
         }
+        .backup-item {
+    margin: 10px 0;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background-color: white;
+}
+
+.backup-item p {
+    margin: 5px 0;
+}
+
+#backup-status {
+    background-color: var(--light-color);
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
     </style>
 </head>
 <body>
@@ -125,13 +143,12 @@
         </div>
         
         <div class="tab-content" id="settings-tab">
-            <div class="export-import">
-                <h3>Экспорт/Импорт данных</h3>
-                <button onclick="exportData()">Экспорт всех данных</button>
-                <input type="file" id="import-file" accept=".json" style="display: none;">
-                <button onclick="document.getElementById('import-file').click()">Импорт данных</button>
-                <p>Экспортированные данные содержат все ваши тренировки в JSON формате</p>
-            </div>
+           <div class="export-import">
+    <h3>Автоматические резервные копии</h3>
+    <div id="backup-status"></div>
+    <button onclick="createBackup()">Создать резервную копию сейчас</button>
+    <div id="backup-list" style="margin-top: 15px;"></div>
+</div>
             
             <div class="export-import">
                 <h3>Смена пароля</h3>
@@ -353,6 +370,169 @@ if (!file) return;
             processToken();
             showLoginForm();
         });
+        / ======================
+// СИСТЕМА РЕЗЕРВНОГО КОПИРОВАНИЯ
+// ======================
+
+const BACKUP_INTERVAL = 24 * 60 * 60 * 1000; // 24 часа
+let lastBackupTime = localStorage.getItem('lastBackupTime_' + currentUser) || 0;
+
+// Функция создания резервной копии
+function createBackup() {
+    if (!currentUser) {
+        alert('Войдите в систему для создания резервных копий');
+        return;
+    }
+
+    const now = Date.now();
+    const backupData = {
+        workouts: workoutData,
+        userInfo: users[currentUser],
+        timestamp: now,
+        version: '1.0'
+    };
+
+    const backups = JSON.parse(localStorage.getItem('userBackups')) || {};
+    backups[currentUser] = backups[currentUser] || [];
+
+    // Сохраняем только 3 последние копии
+    if (backups[currentUser].length >= 3) {
+        backups[currentUser].shift();
+    }
+
+    backups[currentUser].push(backupData);
+    localStorage.setItem('userBackups', JSON.stringify(backups));
+    localStorage.setItem('lastBackupTime_' + currentUser, now);
+
+    updateBackupStatus();
+    showBackupList();
+    alert(`Резервная копия создана (${new Date(now).toLocaleString()})`);
+}
+
+// Показать список резервных копий
+function showBackupList() {
+    const backups = JSON.parse(localStorage.getItem('userBackups')) || {};
+    const userBackups = backups[currentUser] || [];
+    const listEl = document.getElementById('backup-list');
+
+    listEl.innerHTML = '<h4>Доступные резервные копии:</h4>';
+
+    if (userBackups.length === 0) {
+        listEl.innerHTML += '<p>Нет доступных резервных копий</p>';
+        return;
+    }
+
+    userBackups.forEach((backup, index) => {
+        const date = new Date(backup.timestamp);
+        listEl.innerHTML += `
+            <div style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                <p><strong>${date.toLocaleString()}</strong></p>
+                <button onclick="restoreBackup(${index})" style="margin-right: 10px;">Восстановить</button>
+                <button onclick="exportSingleBackup(${index})">Экспорт</button>
+            </div>
+        `;
+    });
+}
+
+// Восстановление из резервной копии
+function restoreBackup(index) {
+    if (!confirm('Восстановить эту резервную копию? Текущие данные будут заменены.')) return;
+
+    const backups = JSON.parse(localStorage.getItem('userBackups')) || {};
+    const backup = backups[currentUser][index];
+
+    if (backup) {
+        workoutData = backup.workouts || {};
+        saveUserData();
+        alert('Данные восстановлены!');
+        location.reload();
+    } else {
+        alert('Ошибка: резервная копия не найдена');
+    }
+}
+
+// Экспорт одной резервной копии
+function exportSingleBackup(index) {
+    const backups = JSON.parse(localStorage.getItem('userBackups')) || {};
+    const backup = backups[currentUser][index];
+
+    if (backup) {
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `backup-${currentUser}-${new Date(backup.timestamp).toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+}
+
+// Проверка и создание резервных копий
+function checkAutoBackup() {
+    const now = Date.now();
+    if (now - lastBackupTime >= BACKUP_INTERVAL) {
+        createBackup();
+    }
+}
+
+// Обновление статуса резервного копирования
+function updateBackupStatus() {
+const statusEl = document.getElementById('backup-status');
+    if (!currentUser) {
+        statusEl.innerHTML = '<p>Войдите в систему для работы с резервными копиями</p>';
+        return;
+    }
+
+    const lastBackup = new Date(parseInt(localStorage.getItem('lastBackupTime_' + currentUser) || 0);
+    const nextBackup = new Date(lastBackup.getTime() + BACKUP_INTERVAL);
+
+    statusEl.innerHTML = `
+        <p>Последняя резервная копия: ${lastBackup.getTime() > 0 ? lastBackup.toLocaleString() : 'еще не создана'}</p>
+        <p>Следующая автоматическая резервная копия: ${nextBackup.toLocaleString()}</p>
+    `;
+}
+
+// Инициализация системы резервного копирования
+function initBackupSystem() {
+    updateBackupStatus();
+    showBackupList();
+    
+    // Проверяем каждые 6 часов
+    setInterval(checkAutoBackup, 6 * 60 * 60 * 1000);
+}
+
+// Добавьте в функцию login() после успешного входа:
+initBackupSystem();
+
+// Добавьте в функцию switchTab('settings'):
+updateBackupStatus();
+showBackupList();
+        function saveUserData() {
+    if (!currentUser) {
+        console.error("Пользователь не авторизован, сохранение невозможно");
+        return;
+    }
+    
+    try {
+        // Сохраняем основные данные тренировок
+       saveUserData();
+        
+        // Проверяем необходимость создания резервной копии
+        const now = Date.now();
+        const lastBackup = parseInt(localStorage.getItem(`lastBackupTime_${currentUser}`)) || 0;
+        const backupInterval = 24 * 60 * 60 * 1000; // 24 часа
+        
+        if (now - lastBackup >= backupInterval) {
+            createBackup(); // Вызываем функцию создания резервной копии
+        }
+        
+        console.log("Данные успешно сохранены");
+    } catch (error) {
+        console.error("Ошибка при сохранении данных:", error);
+        alert("Произошла ошибка при сохранении данных. Попробуйте снова.");
+    }
+}
+
     </script>
 </body>
 </html>

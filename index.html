@@ -9,9 +9,7 @@
     <style>
         /* ... (предыдущие стили остаются без изменений) ... */
         
-        .password-reset-form {
-            display: none;
-        }
+       
         
         .export-import {
             margin: 20px 0;
@@ -20,11 +18,7 @@
             border-radius: 8px;
         }
         
-        .email-confirmation {
-            color: var(--secondary-color);
-            font-size: 0.9rem;
-            margin-top: 5px;
-        }
+        
         
         .not-confirmed {
             color: var(--danger-color);
@@ -91,7 +85,6 @@
             <h2>Регистрация</h2>
             <form class="auth-form" onsubmit="register(event)">
                 <input type="text" id="register-username" placeholder="Имя пользователя" required>
-                <input type="email" id="register-email" placeholder="Email" required>
                 <input type="password" id="register-password" placeholder="Пароль" required>
                 <input type="password" id="register-confirm" placeholder="Подтвердите пароль" required>
                 <button type="submit">Зарегистрироваться</button>
@@ -99,23 +92,14 @@
             <div class="auth-switch" onclick="showLoginForm()">Уже есть аккаунт? Войдите</div>
         </div>
         
-        <div class="auth-container password-reset-form" id="reset-form">
-            <h2>Восстановление пароля</h2>
-            <form class="auth-form" onsubmit="sendResetLink(event)">
-                <input type="email" id="reset-email" placeholder="Ваш email" required>
-                <button type="submit">Отправить ссылку</button>
-            </form>
-            <div class="auth-switch" onclick="showLoginForm()">Вернуться к входу</div>
-        </div>
-    </div>
+        
     
     <!-- Основное приложение -->
     <div class="container" id="app-container">
         <div class="user-header">
             <div class="user-info">
                 Привет, <span id="current-user"></span>!
-                <div class="email-confirmation" id="email-confirmation-status"></div>
-            </div>
+                
             <button class="logout-btn" onclick="logout()">Выйти</button>
         </div>
         
@@ -157,12 +141,7 @@
                 <button onclick="changePassword()">Сменить пароль</button>
             </div>
             
-            <div class="export-import">
-                <h3>Подтверждение email</h3>
-                <p id="current-email"></p>
-                <button onclick="sendConfirmationEmail()">Отправить подтверждение</button>
-                <div id="confirmation-result"></div>
-            </div>
+            
         </div>
     </div>
 
@@ -191,107 +170,16 @@
             // В реальном приложении здесь будет вызов API отправки email
         }
         
-        // Восстановление пароля
-        function sendResetLink(e) {
-            e.preventDefault();
-            const email = document.getElementById('reset-email').value;
-            let userFound = null;
-            
-            for (const username in users) {
-                if (users[username].email === email) {
-                    userFound = username;
-                    break;
-                }
-            }
-            
-            if (!userFound) {
-                alert('Пользователь с таким email не найден!');
-                return;
-            }
-            
-            const token = generateToken();
-            confirmationTokens[token] = {
-                username: userFound,
-                type: 'password_reset',
-                expires: Date.now() + 3600000 // 1 час
-            };
-            
-            localStorage.setItem('confirmationTokens', JSON.stringify(confirmationTokens));
-            
-            const resetLink = `${window.location.origin}${window.location.pathname}?token=${token}`;
-            sendEmail(
-                email,
-                'Восстановление пароля',
-                `Для сброса пароля перейдите по ссылке: ${resetLink}`
-);
-            
-            alert('Ссылка для сброса пароля отправлена на ваш email!');
-            showLoginForm();
-        }
         
-        // Обработка токена при загрузке страницы
-        function processToken() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const token = urlParams.get('token');
-            
-            if (token && confirmationTokens[token]) {
-                const tokenData = confirmationTokens[token];
-                
-                if (tokenData.expires < Date.now()) {
-                    alert('Ссылка устарела!');
-                    return;
-                }
-                
-                if (tokenData.type === 'password_reset') {
-                    const newPassword = prompt('Введите новый пароль:');
-                    if (newPassword) {
-                        const salt = generateSalt();
-                        users[tokenData.username].passwordHash = hashPassword(newPassword, salt);
-                        users[tokenData.username].salt = salt;
-                        localStorage.setItem('workoutUsers', JSON.stringify(users));
-                        delete confirmationTokens[token];
-                        localStorage.setItem('confirmationTokens', JSON.stringify(confirmationTokens));
-                        alert('Пароль успешно изменён!');
-                    }
-                } else if (tokenData.type === 'email_confirmation') {
-                    users[tokenData.username].emailConfirmed = true;
-                    localStorage.setItem('workoutUsers', JSON.stringify(users));
-                    delete confirmationTokens[token];
-                    localStorage.setItem('confirmationTokens', JSON.stringify(confirmationTokens));
-                    alert('Email успешно подтверждён!');
-                    if (currentUser === tokenData.username) {
-                        updateEmailConfirmationStatus();
-                    }
-                }
+        
+       
                 
                 // Удаляем токен из URL
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
         }
         
-        // Подтверждение email
-        function sendConfirmationEmail() {
-            if (!currentUser || !users[currentUser].email) return;
-            
-            const token = generateToken();
-            confirmationTokens[token] = {
-                username: currentUser,
-                type: 'email_confirmation',
-                expires: Date.now() + 86400000 // 24 часа
-            };
-            
-            localStorage.setItem('confirmationTokens', JSON.stringify(confirmationTokens));
-            
-            const confirmLink = `${window.location.origin}${window.location.pathname}?token=${token}`;
-            sendEmail(
-                users[currentUser].email,
-                'Подтверждение email',
-                `Для подтверждения email перейдите по ссылке: ${confirmLink}`
-            );
-            
-            document.getElementById('confirmation-result').textContent = 'Письмо с подтверждением отправлено!';
-        }
-        
+       
         // Генерация токена
         function generateToken() {
             return CryptoJS.lib.WordArray.random(32).toString();
@@ -338,24 +226,7 @@ if (!file) return;
             reader.readAsText(file);
         });
         
-        // Обновление статуса подтверждения email
-        function updateEmailConfirmationStatus() {
-            if (!currentUser || !users[currentUser].email) return;
-            
-            const statusEl = document.getElementById('email-confirmation-status');
-            statusEl.textContent = users[currentUser].email 
-                ? `Email: ${users[currentUser].email} (${users[currentUser].emailConfirmed ? 'подтверждён' : 'не подтверждён'})`
-                : 'Email не указан';
-            
-            if (users[currentUser].email && !users[currentUser].emailConfirmed) {
-                statusEl.classList.add('not-confirmed');
-            } else {
-                statusEl.classList.remove('not-confirmed');
-            }
-            
-            document.getElementById('current-email').textContent = users[currentUser].email || 'Email не указан';
-        }
-        
+       
         // Переключение вкладок
         function switchTab(tabName) {
             document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
@@ -365,11 +236,7 @@ if (!file) return;
             document.getElementById(`${tabName}-tab`).classList.add('active');
         }
         
-        // При загрузке страницы
-        window.addEventListener('DOMContentLoaded', function() {
-            processToken();
-            showLoginForm();
-        });
+        
         / ======================
 // СИСТЕМА РЕЗЕРВНОГО КОПИРОВАНИЯ
 // ======================
